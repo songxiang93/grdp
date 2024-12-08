@@ -131,7 +131,6 @@ func (emitter *Emitter) Once(event, listener interface{}) *Emitter {
 	defer emitter.Unlock()
 
 	fn := reflect.ValueOf(listener)
-
 	if reflect.Func != fn.Kind() {
 		if nil == emitter.recoverer {
 			panic(ErrNoneFunction)

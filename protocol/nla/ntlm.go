@@ -289,10 +289,12 @@ type NTLMv2 struct {
 
 func NewNTLMv2(domain, user, password string) *NTLMv2 {
 	return &NTLMv2{
-		domain:    domain,
-		user:      user,
-		password:  password,
+		domain:   domain,
+		user:     user,
+		password: password,
+		//NT的key
 		respKeyNT: NTOWFv2(password, user, domain),
+		//LM的key
 		respKeyLM: LMOWFv2(password, user, domain),
 	}
 }
@@ -313,9 +315,12 @@ func (n *NTLMv2) GetNegotiateMessage() *NegotiateMessage {
 	return n.negotiateMessage
 }
 
-//  process NTLMv2 Authenticate hash
+// process NTLMv2 Authenticate hash
 func (n *NTLMv2) ComputeResponseV2(respKeyNT, respKeyLM, serverChallenge, clientChallenge,
 	timestamp, serverInfo []byte) (ntChallResp, lmChallResp, SessBaseKey []byte) {
+
+	// 1、respKeyNT: ntlmHash的值，根据密码算出
+	// 2、respKeyLM: ntlmHash的值，根据密码算出
 
 	tempBuff := &bytes.Buffer{}
 	tempBuff.Write([]byte{0x01, 0x01}) // Responser version, HiResponser version

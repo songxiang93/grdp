@@ -109,6 +109,8 @@ type ClientConnectionRequestPDU struct {
 }
 
 func NewClientConnectionRequestPDU(cookie []byte, requestedProtocol uint32) *ClientConnectionRequestPDU {
+
+	// X.224这一层的数据包：
 	x := ClientConnectionRequestPDU{0, TPDU_CONNECTION_REQUEST, 0, 0, 0,
 		cookie, requestedProtocol, NewNegotiation()}
 
@@ -231,11 +233,15 @@ func (x *X224) Connect() error {
 		return errors.New("no transport")
 	}
 	cookie := "Cookie: mstshash=test"
+
+	//这个PDU包含了整个X.224层的数据包
 	message := NewClientConnectionRequestPDU([]byte(cookie), x.requestedProtocol)
+
 	message.ProtocolNeg.Type = TYPE_RDP_NEG_REQ
 	message.ProtocolNeg.Result = uint32(x.requestedProtocol)
 
 	glog.Debug("x224 sendConnectionRequest", hex.EncodeToString(message.Serialize()))
+	// x.transport 是 X.224层
 	_, err := x.transport.Write(message.Serialize())
 	x.transport.Once("data", x.recvConnectionConfirm)
 	return err

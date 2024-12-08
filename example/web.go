@@ -16,7 +16,7 @@ import (
 )
 
 func showPreview(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("static/html/index.html")
+	t, err := template.ParseFiles("example/static/html/index.html")
 	if err != nil {
 		w.Write([]byte(err.Error() + "\n"))
 		return
@@ -171,10 +171,10 @@ func socketIO() {
 
 	http.Handle("/socket.io/", server)
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	http.Handle("/css/", http.FileServer(http.Dir("static")))
-	http.Handle("/js/", http.FileServer(http.Dir("static")))
-	http.Handle("/img/", http.FileServer(http.Dir("static")))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("example/static"))))
+	http.Handle("/css/", http.FileServer(http.Dir("example/static")))
+	http.Handle("/js/", http.FileServer(http.Dir("example/static")))
+	http.Handle("/img/", http.FileServer(http.Dir("example/static")))
 	http.HandleFunc("/", showPreview)
 
 	log.Println("Serving at localhost:8088...")

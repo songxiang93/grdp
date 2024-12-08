@@ -4,6 +4,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/tomatome/grdp/plugin/drdynvc"
 	"net"
 	"runtime"
 	"time"
@@ -100,6 +101,53 @@ func uiRdp(info *Info) (error, *RdpClient) {
 	return nil, g
 }
 
+func (g *RdpClient) NegProtocol() error {
+	domain, user := g.info.Domain, g.info.Username
+	glog.Info("Connect:", g.Host, "with", domain+"\\"+user)
+	conn, err := net.DialTimeout("tcp", g.Host, 3*time.Second)
+	if err != nil {
+		return fmt.Errorf("[dial err] %v", err)
+	}
+
+	g.tpkt = tpkt.New(core.NewSocketLayer(conn), nla.NewNTLMv2(domain, user, ""))
+	g.x224 = x224.New(g.tpkt)
+	g.mcs = t125.NewMCSClient(g.x224)
+	g.sec = sec.NewClient(g.mcs)
+	g.pdu = pdu.NewClient(g.sec)
+	g.channels = plugin.NewChannels(g.sec)
+
+	g.mcs.SetClientDesktop(uint16(g.Width), uint16(g.Height))
+	//clipboard
+	//g.channels.Register(cliprdr.NewCliprdrClient())
+	//g.mcs.SetClientCliprdr()
+
+	//remote app
+	//g.channels.Register(rail.NewClient())
+	//g.mcs.SetClientRemoteProgram()
+	//g.sec.SetAlternateShell("")
+
+	//dvc
+	g.channels.Register(drdynvc.NewDvcClient())
+
+	g.sec.SetUser(user)
+	g.sec.SetDomain(domain)
+
+	g.tpkt.SetFastPathListener(g.sec)
+	g.sec.SetFastPathListener(g.pdu)
+	g.sec.SetChannelSender(g.mcs)
+	g.channels.SetChannelSender(g.sec)
+	g.pdu.SetFastPathSender(g.tpkt)
+
+	//g.x224.SetRequestedProtocol(x224.PROTOCOL_RDP)
+	g.x224.SetRequestedProtocol(x224.PROTOCOL_HYBRID)
+
+	err = g.x224.Connect()
+	if err != nil {
+		return fmt.Errorf("[x224 connect err] %v", err)
+	}
+	return nil
+}
+
 func (g *RdpClient) Login() error {
 	domain, user, pwd := g.info.Domain, g.info.Username, g.info.Passwd
 	glog.Info("Connect:", g.Host, "with", domain+"\\"+user, ":", pwd)
@@ -126,7 +174,7 @@ func (g *RdpClient) Login() error {
 	//g.sec.SetAlternateShell("")
 
 	//dvc
-	//g.channels.Register(drdynvc.NewDvcClient())
+	g.channels.Register(drdynvc.NewDvcClient())
 
 	g.sec.SetUser(user)
 	g.sec.SetPwd(pwd)
@@ -136,10 +184,10 @@ func (g *RdpClient) Login() error {
 	g.sec.SetFastPathListener(g.pdu)
 	g.sec.SetChannelSender(g.mcs)
 	g.channels.SetChannelSender(g.sec)
-	//g.pdu.SetFastPathSender(g.tpkt)
+	g.pdu.SetFastPathSender(g.tpkt)
 
 	//g.x224.SetRequestedProtocol(x224.PROTOCOL_RDP)
-	g.x224.SetRequestedProtocol(x224.PROTOCOL_SSL)
+	g.x224.SetRequestedProtocol(x224.PROTOCOL_HYBRID)
 
 	err = g.x224.Connect()
 	if err != nil {

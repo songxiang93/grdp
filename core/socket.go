@@ -2,14 +2,15 @@ package core
 
 import (
 	"crypto/rsa"
+	"github.com/tomatome/grdp/glog"
 	"math/big"
 
 	"github.com/huin/asn1ber"
 
 	//"crypto/tls"
 	"errors"
-	"net"
 	"github.com/icodeface/tls"
+	"net"
 )
 
 type SocketLayer struct {
@@ -54,10 +55,19 @@ func (s *SocketLayer) StartTLS() error {
 		InsecureSkipVerify:       true,
 		MinVersion:               tls.VersionTLS10,
 		MaxVersion:               tls.VersionTLS13,
-		PreferServerCipherSuites: true,
+		PreferServerCipherSuites: false,
+		CipherSuites: []uint16{
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
 	}
 	s.tlsConn = tls.Client(s.conn, config)
-	return s.tlsConn.Handshake()
+	err := s.tlsConn.Handshake()
+	if err == nil {
+		state := s.tlsConn.ConnectionState()
+		glog.Infof("state .CipherSuite %d", state.CipherSuite)
+	}
+	return err
 }
 
 type PublicKey struct {
@@ -71,4 +81,5 @@ func (s *SocketLayer) TlsPubKey() ([]byte, error) {
 	}
 	pub := s.tlsConn.ConnectionState().PeerCertificates[0].PublicKey.(*rsa.PublicKey)
 	return asn1ber.Marshal(*pub)
+
 }

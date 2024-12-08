@@ -57,6 +57,8 @@ func (t *TPKT) StartNLA() error {
 		glog.Info("start tls failed", err)
 		return err
 	}
+
+	//发起NTLM第一阶段：
 	req := nla.EncodeDERTRequest([]nla.Message{t.ntlm.GetNegotiateMessage()}, nil, nil)
 	_, err = t.Conn.Write(req)
 	if err != nil {
@@ -65,12 +67,14 @@ func (t *TPKT) StartNLA() error {
 	}
 
 	resp := make([]byte, 1024)
+	//这里是已经解了tls了,Conn是SocketLayer层，在SocketLayer层里封装了tls：
 	n, err := t.Conn.Read(resp)
 	if err != nil {
 		return fmt.Errorf("read %s", err)
 	} else {
 		glog.Debug("StartNLA Read success")
 	}
+	//收到服务端发起的挑战值:
 	return t.recvChallenge(resp[:n])
 }
 
@@ -169,6 +173,8 @@ func (t *TPKT) recvHeader(s []byte, err error) {
 	}
 	r := bytes.NewReader(s)
 	version, _ := core.ReadUInt8(r)
+	//
+	//一般来说都是3，第二个字节是保留字，直接忽略,第三个字节是长度：
 	if version == FASTPATH_ACTION_X224 {
 		glog.Debug("tptk recvHeader FASTPATH_ACTION_X224, wait for recvExtendedHeader")
 		core.StartReadBytes(2, t.Conn, t.recvExtendedHeader)
@@ -190,8 +196,12 @@ func (t *TPKT) recvExtendedHeader(s []byte, err error) {
 		return
 	}
 	r := bytes.NewReader(s)
+
+	// 注：tpkt的长度规定是大端
 	size, _ := core.ReadUint16BE(r)
 	glog.Debug("tpkt wait recvData:", size)
+
+	// -4 指的是减去tpkt头部本身,Version,保留字段和长度本身的意思。
 	core.StartReadBytes(int(size-4), t.Conn, t.recvData)
 }
 
@@ -200,6 +210,7 @@ func (t *TPKT) recvData(s []byte, err error) {
 	if err != nil {
 		return
 	}
+	//去处理tpkt下层的报文信息，如X224等。
 	t.Emit("data", s)
 	core.StartReadBytes(2, t.Conn, t.recvHeader)
 }
