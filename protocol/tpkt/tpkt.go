@@ -29,12 +29,13 @@ const (
  */
 type TPKT struct {
 	emission.Emitter
-	Conn             *core.SocketLayer
-	ntlm             *nla.NTLMv2
-	secFlag          byte
-	lastShortLength  int
-	fastPathListener core.FastPathListener
-	ntlmSec          *nla.NTLMv2Security
+	Conn                     *core.SocketLayer
+	ntlm                     *nla.NTLMv2
+	secFlag                  byte
+	lastShortLength          int
+	fastPathListener         core.FastPathListener
+	ntlmSec                  *nla.NTLMv2Security
+	NoReceiveNextTpktPackage bool
 }
 
 func New(s *core.SocketLayer, ntlm *nla.NTLMv2) *TPKT {
@@ -212,6 +213,11 @@ func (t *TPKT) recvData(s []byte, err error) {
 	}
 	//去处理tpkt下层的报文信息，如X224等。
 	t.Emit("data", s)
+
+	if t.NoReceiveNextTpktPackage == true {
+		glog.Info("由于credssp不包含tpkt，所以在Credssp流程中，不需要tpkt的处理,把tpkt的处理关掉")
+		return
+	}
 	core.StartReadBytes(2, t.Conn, t.recvHeader)
 }
 

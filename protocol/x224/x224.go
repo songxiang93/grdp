@@ -178,12 +178,17 @@ func NewDataHeader() *DataHeader {
  * Common X224 Automata
  * @param presentation {Layer} presentation layer
  */
+type TlsResult struct {
+	err error
+}
+
 type X224 struct {
 	emission.Emitter
 	transport         core.Transport
 	requestedProtocol uint32
 	selectedProtocol  uint32
 	dataHeader        *DataHeader
+	startTlsChan      chan *TlsResult
 }
 
 func New(t core.Transport) *X224 {
@@ -193,6 +198,7 @@ func New(t core.Transport) *X224 {
 		PROTOCOL_RDP | PROTOCOL_SSL | PROTOCOL_HYBRID,
 		PROTOCOL_SSL,
 		NewDataHeader(),
+		make(chan *TlsResult),
 	}
 
 	t.On("close", func() {
