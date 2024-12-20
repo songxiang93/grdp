@@ -116,7 +116,6 @@ func (m *NegotiateMessage) Serialize() []byte {
 	}
 	buff := &bytes.Buffer{}
 	struc.Pack(buff, m)
-
 	return buff.Bytes()
 }
 
@@ -297,6 +296,10 @@ func NewNTLMv2(domain, user, password string) *NTLMv2 {
 		//LM的key
 		respKeyLM: LMOWFv2(password, user, domain),
 	}
+}
+
+func (n *NTLMv2) SetNegotiateMessage(neg *NegotiateMessage) {
+	n.negotiateMessage = neg
 }
 
 // generate first handshake messgae
