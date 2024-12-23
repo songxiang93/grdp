@@ -1,3 +1,5 @@
+//go:build windows
+
 // cliprdr_windows.go
 package cliprdr
 
